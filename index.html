@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1020"><title>REO GAMES</title>
+<style>
+:root{--bg:#ffffff;--panel:#f7f8f4;--cyan:#b6e632;--muted:#667085}*{box-sizing:border-box}body{margin:0;background:#fff;color:#20251f;font:16px system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif}header,main,footer{max-width:1050px;margin:auto;padding:22px 18px}nav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.logo{font-weight:900;font-size:1.25rem}.logo span,h1 span{color:var(--cyan)}a{color:#50584d;text-decoration:none;margin-left:14px}a:hover{color:#658a10}.hero{padding:58px 0 34px;max-width:760px}.tag{color:#668c13;font-size:.75rem;font-weight:800;letter-spacing:.8px;text-transform:uppercase}h1{font-size:clamp(2.5rem,8vw,4.5rem);line-height:1;margin:12px 0}p{color:#60685d;line-height:1.65}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:20px 0}input{background:#f7f8f5;border:1px solid #dce2d5;border-radius:12px;padding:12px;color:#20251f;font:inherit;width:min(100%,280px)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:18px}.card{background:#fff;border:1px solid #e4e8df;border-radius:18px;overflow:hidden;box-shadow:0 5px 20px #24351a0a}.art{height:140px;display:grid;place-items:center;font-size:4rem;background:#eff8d9}.art.two{background:#e4f5ed}.art.three{background:#f4eaff}.body{padding:18px}.body p{min-height:48px}button{border:0;border-radius:999px;padding:11px 17px;font:inherit;font-weight:750;background:#dff2a8;color:#26301f;cursor:pointer}button:hover{background:#d0eb87}button.alt{background:#f5f7f1;color:#374132;border:1px solid #dfe5d8}.play{display:none;margin-top:14px;padding:14px;background:#f8faf5;border:1px solid #e1e6da;border-radius:12px}.play.active{display:block}.score{font-size:2rem;font-weight:900;color:#6b9411}.tap{width:100%;min-height:75px;margin:8px 0;background:linear-gradient(120deg,#d9f29b,#eaf7d0)}canvas{width:100%;max-width:380px;display:block;margin:12px auto;background:#f7f9f2;border:1px solid #dce5d1;border-radius:10px;touch-action:manipulation}.controls,.palette{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.dot{width:42px;height:42px;border-radius:50%;border:3px solid white;padding:0}.mix{height:60px;border-radius:12px;margin:12px 0;display:grid;place-items:center;border:1px solid #ffffff55;font-weight:800;text-align:center;padding:8px}.mixResult{display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap}.colorCode{font:700 .9rem ui-monospace,monospace;background:#fff;border:1px solid #d9dee7;border-radius:8px;padding:6px 9px;color:#20251f}.swatch{width:44px;height:44px;border-radius:10px;border:1px solid #0002;box-shadow:inset 0 0 0 1px #ffffff40}small{color:var(--muted)}footer{border-top:1px solid #e5e9e0;text-align:center}
+
+body.game-open{overflow:hidden}
+#gameScreen{display:none;position:fixed;inset:0;z-index:1000;background:#fff;color:#20251f;overflow:auto}
+#gameScreen.active{display:block}
+.gameTop{position:sticky;top:0;z-index:3;background:#ffffffed;backdrop-filter:blur(8px);border-bottom:1px solid #e7eadf;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px max(16px,calc((100vw - 1050px)/2))}
+.gameInner{max-width:900px;margin:auto;padding:24px 18px 60px}
+.gameInner h1{font-size:clamp(2rem,6vw,3.5rem);margin:8px 0 12px}
+.planetPanel{background:#f5f7f0;border:1px solid #e3e8d8;border-radius:24px;padding:clamp(12px,3vw,26px);margin:20px 0}
+.planetStage{height:clamp(260px,48vh,430px);position:relative;display:grid;place-items:center;overflow:hidden;border-radius:18px;background:radial-gradient(ellipse at 50% 65%,#d9e7d0 0,#eef3e9 43%,#f7f9f4 75%)}
+.stars{position:absolute;inset:0;background-image:radial-gradient(#b9c7a9 1px,transparent 1.5px);background-size:33px 31px;opacity:.55}
+.planet{width:var(--planet-size,52px);height:var(--planet-size,52px);border-radius:50%;position:relative;z-index:1;transition:width .45s,height .45s,background .7s,box-shadow .5s;cursor:pointer;box-shadow:inset -12px -10px 18px #0004,0 10px 24px #25351b22;touch-action:manipulation}
+.planet.meteor{background:radial-gradient(circle at 30% 28%,#f4b47c,#9b5b45 52%,#493b3b);box-shadow:inset -12px -10px 18px #0005,0 0 28px #ffb16a}
+.planet.rock{background:radial-gradient(circle at 30% 28%,#aaa99f,#686d68 58%,#3d4546)}
+.planet.lava{background:radial-gradient(circle at 32% 28%,#fff3a1 0,#ff9c30 24%,#d73d22 56%,#54251f 78%);box-shadow:0 0 45px #ff6c2b88,inset -12px -10px 18px #0005}
+.planet.cooling{background:radial-gradient(circle at 32% 28%,#b8b4a5,#6e776f 56%,#384e4c)}
+.planet.ocean{background:radial-gradient(circle at 30% 28%,#b4edff,#3195d4 35%,#17456e 72%);box-shadow:inset -12px -10px 18px #0005,0 0 30px #5fc6ff33}
+.planet.life{background:radial-gradient(circle at 30% 28%,#8fd9a3,#2d8c65 50%,#174a4a 78%)}
+.planet .crater{position:absolute;border-radius:50%;background:#3334;box-shadow:inset 2px 3px 4px #0004;left:20%;top:40%;width:15%;height:12%}
+.planet .crater:nth-child(2){left:60%;top:24%;width:11%;height:9%}.planet .crater:nth-child(3){left:57%;top:65%;width:20%;height:13%}
+.planet .continent{position:absolute;background:#67b879;border-radius:50% 35% 45% 40%;width:28%;height:22%;left:20%;top:34%;transform:rotate(28deg)}
+.planet .continent:nth-child(2){left:58%;top:55%;width:22%;height:17%;transform:rotate(-20deg)}
+.planet .lifeDot{position:absolute;width:7%;height:7%;border-radius:50%;background:#d8ff92;box-shadow:0 0 9px #e0ff8b;left:35%;top:48%}
+.planetCaption{position:absolute;left:14px;bottom:12px;background:#ffffffd9;padding:7px 10px;border-radius:10px;font-size:.8rem;color:#52604b}
+.planetStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.stat{background:white;border:1px solid #e4e8dd;border-radius:14px;padding:12px}.stat small{display:block}.stat b{display:block;font-size:1.05rem;margin-top:3px}
+.progress{height:8px;background:#e5eadf;border-radius:99px;overflow:hidden;margin:8px 0 14px}.progress span{display:block;height:100%;background:#9dce3a;transition:width .3s}
+.planetActions{display:flex;gap:10px;flex-wrap:wrap}.planetActions button{flex:1;min-width:150px}
+.eventText{min-height:28px;color:#5b6652;margin:10px 0}
+.miniChoice{background:#fff;border:1px solid #e3e8d8;border-radius:14px;padding:14px;margin-top:12px}
+@media(max-width:520px){.planetStats{grid-template-columns:1fr 1fr}.planetStats .stat:last-child{grid-column:span 2}.gameTop{padding:10px 14px}}
+
+
+#adminPanel{display:none;position:fixed;inset:0;z-index:5000;background:#101827d9;backdrop-filter:blur(7px);padding:18px;overflow:auto}
+#adminPanel.open{display:flex;align-items:center;justify-content:center}
+.adminBox{width:min(100%,560px);background:#fff;border:1px solid #dbe2ea;border-radius:20px;box-shadow:0 25px 90px #0005;overflow:hidden;color:#172033}
+.adminHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;background:#111827;color:#fff}
+.adminHead h2{margin:0;font-size:1.15rem}.adminHead small{color:#aeb9cb}
+.adminBody{padding:20px}.adminRow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid #edf0f4}
+.adminRow:last-child{border-bottom:0}.adminRow strong{display:block}.adminRow small{display:block;margin-top:3px}
+.adminActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.adminBox button{background:#1d4ed8;color:#fff}.adminBox button.alt{background:#f1f5f9;color:#263246;border:1px solid #d8e0ea}
+.adminSwitch{min-width:70px}
+.adminStatus{font:12px ui-monospace,monospace;color:#526174;background:#f5f7fa;border-radius:10px;padding:10px;margin-top:12px;overflow-wrap:anywhere}
+#adminPanel input[type=number]{width:90px;padding:8px;border-radius:9px;border:1px solid #d8e0ea}
+
+
+/* Laboratório de física REO */
+#physicsLab{display:none;position:fixed;inset:0;z-index:9998;background:#080b18;color:#f5f7ff;padding:12px;overflow:auto}
+#physicsLab.open{display:flex;flex-direction:column;gap:10px}
+#physicsLab .labTop{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#physicsLab h2{margin:4px 0;font-size:1.25rem}
+#physicsLab .labTools{display:grid;grid-template-columns:repeat(9,minmax(68px,1fr));gap:6px;overflow-x:auto;padding-bottom:4px}#physicsLab .labTools button{white-space:nowrap;padding:8px 9px;font-size:.78rem}#physicsLab .labSettings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#physicsLab .labSetting{border:1px solid #303a5c;background:#0d1530;border-radius:12px;padding:10px;min-width:0}#physicsLab .labSetting strong{display:block;font-size:.82rem;margin-bottom:6px}#physicsLab .labSetting .labFooter{gap:6px}#physicsLab .labSetting button{padding:7px 9px;font-size:.8rem}#physicsLab .labFooter{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#physicsLab input[type=range]{width:100%;accent-color:#5be0d2}@media(max-width:520px){#physicsLab .labTools{grid-template-columns:repeat(9,minmax(72px,1fr))}#physicsLab .labSettings{grid-template-columns:1fr 1fr}}
+#physicsLab button{padding:9px 12px;font-size:.9rem}
+#physicsLab button.selected{background:#5be0d2;color:#06131a}
+#physicsLab .labBoard{width:100%;height:min(60vh,560px);min-height:260px;border:1px solid #303a5c;border-radius:14px;background:#0b1024;touch-action:none;display:block}
+#physicsLab .labHint{color:#b9c5e7;font-size:.88rem;margin:0}
+#physicsLab .labFooter{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#physicsLab input[type=range]{width:140px;accent-color:#5be0d2}
+
+/* REO Labs visual refresh + selectable themes */
+:root{--bg:#071426;--panel:#0d2038;--text:#eef6ff;--muted:#9fb5d1;--accent:#4ea5ff;--accent2:#83d6ff;--border:#203c5c;--art1:#102c4b;--art2:#071426}
+body{background:var(--bg);color:var(--text)}p{color:var(--muted)}a{color:var(--accent2)}.logo span,h1 span,.tag{color:var(--accent)}
+.card,.stat,.miniChoice{background:var(--panel);border-color:var(--border);color:var(--text)}.card{box-shadow:0 12px 30px #0003}.body p{color:var(--muted)}input{background:var(--panel);color:var(--text);border-color:var(--border)}button{background:var(--accent);color:#06101f}button:hover{filter:brightness(1.12)}button.alt{background:transparent;color:var(--text);border:1px solid var(--border)}footer{border-color:var(--border)}
+.art{height:170px;position:relative;overflow:hidden;background:linear-gradient(145deg,#102d55,#050c1c 70%);font-size:0}
+.art:before,.art:after{content:"";position:absolute;display:block;pointer-events:none}
+.art.cosmic:before{width:110px;height:110px;left:calc(50% - 55px);top:30px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#b4f4ff,#4289ff 30%,#20316e 68%,#080d28);box-shadow:0 0 35px #429eff88,inset -16px -12px 25px #0008}
+.art.cosmic:after{width:230px;height:70px;left:calc(50% - 115px);top:55px;border:2px solid #6fdcffaa;border-radius:50%;transform:rotate(-22deg);box-shadow:0 0 16px #62dfff55}
+.art.drive{background:linear-gradient(#193d68 0 55%,#d6a76a 56%,#5c4639 100%)}.art.drive:before{left:36%;bottom:-10px;width:28%;height:150px;background:#182435;clip-path:polygon(38% 0,62% 0,100% 100%,0 100%)}.art.drive:after{left:49%;bottom:0;width:4px;height:100px;background:repeating-linear-gradient(to bottom,#fff 0 18px,transparent 18px 34px)}
+.art.colors{background:linear-gradient(130deg,#091a36,#33235b 55%,#071426)}.art.colors:before{width:95px;height:95px;left:calc(50% - 100px);top:38px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#ffb1bd,#ed3e68 65%,#7d183f);box-shadow:0 0 25px #ed3e6866}.art.colors:after{width:95px;height:95px;left:calc(50% + 5px);top:38px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#a8eaff,#268aff 65%,#163d91);mix-blend-mode:screen}
+.art.sand{background:linear-gradient(#0e3552 0 60%,#d6b16b 61% 100%)}.art.sand:before{left:0;right:0;bottom:0;height:55px;background:repeating-linear-gradient(115deg,#e6ca86 0 18px,#c49a4d 18px 35px)}.art.sand:after{width:90px;height:90px;left:calc(50% - 45px);top:30px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#9ae7ff,#1684bb 65%,#064a75);box-shadow:0 0 25px #52cfff77}
+.art.magnet{background:radial-gradient(ellipse at center,#172f62,#080f22 70%)}.art.magnet:before{width:150px;height:70px;left:calc(50% - 75px);top:50px;border:3px solid #69bfff;border-radius:50%;transform:rotate(-25deg);box-shadow:0 0 18px #348dff77}.art.magnet:after{width:36px;height:36px;left:calc(50% - 18px);top:67px;border-radius:50%;background:#ff657d;box-shadow:45px -25px 0 #63a8ff,-48px 30px 0 #ffcf69,0 0 20px #ff657d}
+.art.gravity{background:radial-gradient(ellipse at 50% 45%,#152b58,#040915 75%)}.art.gravity:before{width:100px;height:100px;left:calc(50% - 50px);top:34px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#b4d8ff,#3e6cc7 50%,#101b4e 80%);box-shadow:0 0 35px #568cff77}.art.gravity:after{width:200px;height:75px;left:calc(50% - 100px);top:48px;border:2px solid #91c7ff99;border-radius:50%;transform:rotate(28deg)}
+#settingsPanel{display:none;position:fixed;z-index:9000;inset:0;background:#0009;align-items:center;justify-content:center;padding:18px}#settingsPanel.open{display:flex}.settingsBox{width:min(100%,430px);background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 20px 70px #0008}.themeChoices{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:16px 0}.themeChoice{border:1px solid var(--border);border-radius:12px;padding:12px;text-align:left;background:transparent;color:var(--text)}.themeChoice:before{content:"";display:block;height:13px;border-radius:6px;margin-bottom:8px;background:linear-gradient(90deg,var(--sw1),var(--sw2))}.labsMark{position:fixed;top:5px;left:8px;z-index:20;font-size:10px;letter-spacing:1.5px;font-weight:900;color:var(--accent2);opacity:.85;pointer-events:none}
+#gameScreen{background:var(--bg);color:var(--text)}.gameTop{background:color-mix(in srgb,var(--bg) 90%,transparent);border-color:var(--border)}.planetPanel{background:var(--panel);border-color:var(--border)}.planetStage{background:radial-gradient(ellipse at 50% 65%,#173d67 0,#0d2038 43%,#071426 75%)}.planetCaption{background:#071426dd;color:#c6ddf7}.progress{background:#20334b}.progress span{background:var(--accent)}.eventText{color:var(--muted)}
+
+</style></head><body>
+<div class="labsMark">REO LABS</div><header><nav><div class="logo">REO <span>GAMES</span></div><div><a href="#jogos">Jogos</a><button class="alt" onclick="openSettings()">⚙ Configurações</button></div></nav><section class="hero"><div class="tag">Pequenos jogos • Grandes ideias</div><h1>Entre, explore<br>e <span>jogue.</span></h1><p>Um cantinho de experiências interativas. Escolha um jogo e comece direto no navegador, inclusive no celular.</p></section></header>
+<main id="jogos"><div class="toolbar"><div><h2>Jogos disponíveis</h2><small>3 experiências para começar</small></div><input id="search" placeholder="Buscar jogo..." aria-label="Buscar jogo"></div>
+<div class="grid">
+<article class="card" data-search="clique cósmico planeta pontos clicker"><div class="art cosmic" role="img" aria-label="Planeta luminoso em órbita"></div><div class="body"><div class="tag">Clicker • Relaxante</div><h2>Clique Cósmico</h2><p>Clique no planeta para juntar energia cósmica e bater seu recorde.</p><button onclick="launchGame('planet')">JOGAR</button><section class="play" id="cosmic"><b>Energia cósmica</b><div class="score" id="score">0</div><button class="tap" onclick="scoreUp()">✨ TOCAR NO PLANETA ✨</button><button class="alt" onclick="resetScore()">Reiniciar</button><button class="alt" onclick="closeGame('cosmic')">Fechar</button></section></div></article>
+<article class="card" data-search="desvie reflexo obstáculos arcade"><div class="art drive" role="img" aria-label="Pista de corrida estilizada"></div><div class="body"><div class="tag">Reflexo • Arcade</div><h2>Desvie!</h2><p>Dirija pela pista, desvie de cones, barreiras e bloqueios e tente bater seu recorde.</p><button onclick="launchGame('dodgeFull')">JOGAR</button><section class="play" id="dodge"><b>Pontuação: <span id="ds">0</span></b><canvas id="cv" width="360" height="250"></canvas><div class="controls"><button class="alt" id="left">◀ Esquerda</button><button id="start">Começar</button><button class="alt" id="right">Direita ▶</button></div><p id="hint">Use os botões ou toque no lado da área do jogo.</p><button class="alt" onclick="closeGame('dodge')">Fechar</button></section></div></article>
+<article class="card" data-search="laboratório cores mistura criatividade"><div class="art colors" role="img" aria-label="Esferas de cores em mistura"></div><div class="body"><div class="tag">Criatividade • Experimento</div><h2>Laboratório de Cores</h2><p>Escolha duas cores e veja a cor resultante da mistura.</p><button onclick="launchGame('colorsFull')">JOGAR</button><section class="play" id="colors"><p>Escolha a primeira cor:</p><div class="palette" id="p1"></div><p>Escolha a segunda:</p><div class="palette" id="p2"></div><div class="mix" id="mix">Sua mistura aparecerá aqui</div><button class="alt" onclick="clearMix()">Limpar</button><button class="alt" onclick="closeGame('colors')">Fechar</button></section></div></article>
+
+<article class="card" data-search="mini sandbox elementos areia água pedra fogo partículas simulação"><div class="art sand" role="img" aria-label="Experimento de areia e água"></div><div class="body"><div class="tag">Sandbox • Elementos</div><h2>Mini Sandbox</h2><p>Desenhe areia, água, pedra e fogo e veja os elementos interagirem em tempo real.</p><button onclick="openPhysicsLab('sand')">JOGAR</button></div></article>
+<article class="card" data-search="ímã maluco magnetismo partículas atrair repelir física"><div class="art magnet" role="img" aria-label="Campo magnético com partículas"></div><div class="body"><div class="tag">Física • Magnetismo</div><h2>Ímã Maluco</h2><p>Arraste ímãs pelo campo e observe partículas coloridas serem atraídas ou repelidas.</p><button onclick="openPhysicsLab('magnet')">JOGAR</button></div></article>
+<article class="card" data-search="gravidade livre planetas órbitas partículas espaço física"><div class="art gravity" role="img" aria-label="Planeta em órbita"></div><div class="body"><div class="tag">Física • Gravidade</div><h2>Gravidade Livre</h2><p>Crie planetas e partículas, mude a gravidade e experimente órbitas e forças.</p><button onclick="openPhysicsLab('gravity')">JOGAR</button></div></article>
+</div><section class="card body" id="descricao" style="margin-top:24px"><div class="tag">REO LABS · PLATAFORMA DE JOGOS</div><h2>Um espaço para experimentar</h2><p>REO GAMES é uma plataforma de jogos e experiências interativas criada para explorar ideias, testar possibilidades e se divertir diretamente pelo navegador. O catálogo reúne experiências arcade, desafios de reflexo, criação de cores e laboratórios de física com partículas, elementos, magnetismo e gravidade. A interface foi pensada para funcionar em telas grandes e celulares, com controles por toque e sessões rápidas que permitem experimentar livremente. O projeto evolui com novos modos, ajustes visuais e ferramentas para transformar curiosidade em brincadeira interativa. Nenhuma instalação é necessária para jogar: basta abrir a página e escolher uma experiência.</p></section></main>
+
+
+<div id="physicsLab" aria-label="Laboratório de física">
+ <div class="labTop"><div><div class="tag" style="color:#70e8dc">REO GAMES · EXPERIMENTOS</div><h2 id="labTitle">Mini Sandbox</h2></div><button onclick="closePhysicsLab()">Fechar ✕</button></div>
+ <div class="labTools" id="labTools"></div>
+ <canvas id="labCanvas" class="labBoard"></canvas>
+ <p id="labHint" class="labHint">Escolha um elemento e arraste o dedo pelo quadro para desenhar.</p>
+ <div class="labSettings"><div class="labSetting"><strong>Gravidade e forças</strong><label style="color:#c9d4f2;font-size:.85rem">Intensidade <input id="labForce" type="range" min="1" max="10" value="5" oninput="labStrength=Number(this.value)"></label><div class="labFooter"><button class="alt" onclick="labAction('orbit')">Órbita</button><button class="alt" onclick="labAction('kick')">Impulso</button><button class="alt" onclick="labAction('freeze')">Congelar</button></div></div><div class="labSetting"><strong>Simulação e ferramentas</strong><div class="labFooter"><button class="alt" onclick="clearLab()">Limpar tudo</button><button class="alt" id="pauseLab" onclick="toggleLabPause()">⏸ Pausar</button><button class="alt" onclick="labAction('reset')">Reiniciar</button></div><span id="labReadout" style="color:#c9d4f2;font-size:.8rem">Partículas: 0</span></div></div>
+</div>
+
+<div id="adminPanel" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+ <div class="adminBox">
+  <div class="adminHead">
+   <div><h2 id="adminTitle">REO GAMES · ADMIN / DEBUG</h2><small>Painel local de testes</small></div>
+   <button class="alt" onclick="closeAdmin()">Fechar ✕</button>
+  </div>
+  <div class="adminBody">
+   <div class="adminRow"><div><strong>Modo invencível</strong><small>Ignora colisões no jogo Desvie!</small></div><button class="adminSwitch" id="godToggle" onclick="toggleDebug('godMode')">OFF</button></div>
+   <div class="adminRow"><div><strong>Modo lento</strong><small>Reduz a frequência e a velocidade dos obstáculos.</small></div><button class="adminSwitch" id="slowToggle" onclick="toggleDebug('slowMode')">OFF</button></div>
+   <div class="adminRow"><div><strong>Energia cósmica</strong><small>Adicionar pontos ao jogo de cliques.</small></div><div><input id="adminPoints" type="number" min="1" max="100000" value="100"><button onclick="addAdminPoints()">+ pontos</button></div></div>
+   <div class="adminRow"><div><strong>Ir para a próxima etapa</strong><small>Avança a evolução planetária para teste.</small></div><button onclick="adminNextPlanet()">Avançar</button></div>
+   <div class="adminRow"><div><strong>Mostrar informações</strong><small>Exibe informações técnicas simples do portal.</small></div><button class="alt" onclick="adminInfo()">Ver info</button></div>
+   <div class="adminActions"><button class="alt" onclick="resetDebug()">Restaurar opções</button><button class="alt" onclick="closeAdmin()">Voltar ao jogo</button></div>
+   <div id="adminStatus" class="adminStatus">Sistema pronto. Toque 7 vezes no título REO GAMES para abrir este painel.</div>
+  </div>
+ </div>
+</div>
+<div id="gameScreen">
+ <div class="gameTop"><strong>REO GAMES</strong><button class="alt" onclick="exitGame()">← Voltar aos jogos</button></div>
+ <div class="gameInner" id="screenContent"></div>
+</div>
+
+<div id="settingsPanel" role="dialog" aria-modal="true" aria-label="Configurações de aparência"><div class="settingsBox"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">Configurações</h2><button class="alt" onclick="closeSettings()">Fechar ✕</button></div><p>Escolha a combinação de cores do portal.</p><div class="themeChoices"><button class="themeChoice" style="--sw1:#080808;--sw2:#ef4444" onclick="setTheme('red')">Preto e vermelho</button><button class="themeChoice" style="--sw1:#061426;--sw2:#1677ff" onclick="setTheme('blueblack')">Azul e preto</button><button class="themeChoice" style="--sw1:#061b13;--sw2:#22c55e" onclick="setTheme('green')">Verde e preto</button><button class="themeChoice" style="--sw1:#ffffff;--sw2:#2563eb" onclick="setTheme('whiteblue')">Branco e azul</button><button class="themeChoice" style="--sw1:#25103d;--sw2:#b56bff" onclick="setTheme('purple')">Roxo e preto</button><button class="themeChoice" style="--sw1:#111827;--sw2:#f59e0b" onclick="setTheme('amber')">Preto e dourado</button></div><small>O tema é aplicado imediatamente nesta página.</small></div></div>
+<footer>REO GAMES · Experimentos para jogar<br><small>Versão inicial 1.0</small></footer>
+<script>
+window.REO_DEBUG = { godMode:false, slowMode:false, showHitboxes:false };
+function openGame(id){document.querySelectorAll('.play').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='dodge')draw()}function closeGame(id){document.getElementById(id).classList.remove('active');if(id==='dodge')stop()}
+document.getElementById('search').addEventListener('input',e=>{let q=e.target.value.toLowerCase();document.querySelectorAll('[data-search]').forEach(c=>c.hidden=!c.dataset.search.includes(q))});
+let score=0;function scoreUp(){document.getElementById('score').textContent=++score}function resetScore(){score=0;document.getElementById('score').textContent=0}
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');let px=170,blocks=[],ds=0,timer=null,dir=0,running=false;
+function draw(){
+ ctx.clearRect(0,0,360,250);
+ ctx.fillStyle='#202630';ctx.fillRect(0,0,360,250);
+ ctx.fillStyle='#343d49';ctx.fillRect(55,0,250,250);
+ ctx.fillStyle='#e8edf2';for(let y=-30;y<280;y+=55){ctx.fillRect(176,y,5,28)}
+ ctx.fillStyle='#f6c445';ctx.fillRect(49,0,4,250);ctx.fillRect(307,0,4,250);
+ // carro do jogador
+ ctx.fillStyle='#101820';ctx.fillRect(px+1,219,8,18);ctx.fillRect(px+21,219,8,18);
+ ctx.fillStyle='#e53935';ctx.beginPath();ctx.roundRect(px,212,30,34,7);ctx.fill();
+ ctx.fillStyle='#a9d9f5';ctx.beginPath();ctx.roundRect(px+5,218,20,9,3);ctx.fill();
+ ctx.fillStyle='#ffdf8a';ctx.fillRect(px+3,213,6,3);ctx.fillRect(px+21,213,6,3);
+ blocks.forEach(b=>{
+   if(b.type==='barrier'){ctx.fillStyle='#f7f7f7';ctx.fillRect(b.x,b.y,b.w,b.h);ctx.fillStyle='#f04438';for(let z=0;z<b.w;z+=18){ctx.save();ctx.beginPath();ctx.rect(b.x+z,b.y,Math.min(9,b.w-z),b.h);ctx.clip();ctx.fillRect(b.x+z,b.y,9,b.h);ctx.restore()}}
+   else if(b.type==='cone'){ctx.fillStyle='#ff7a1a';ctx.beginPath();ctx.moveTo(b.x+b.w/2,b.y);ctx.lineTo(b.x+b.w,b.y+b.h);ctx.lineTo(b.x,b.y+b.h);ctx.closePath();ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(b.x+4,b.y+b.h*.62,b.w-8,4)}
+   else {ctx.fillStyle='#f6c445';ctx.fillRect(b.x,b.y,b.w,b.h);ctx.fillStyle='#202630';ctx.fillRect(b.x+4,b.y+4,b.w-8,4)}
+ });
+}
+function start(){stop();px=165;blocks=[];ds=0;document.getElementById('ds').textContent=0;running=true;document.getElementById('hint').textContent='Desvie dos cones e das barreiras!';timer=setInterval(()=>{px=Math.max(57,Math.min(273,px+dir*5));if(Math.random()<(window.REO_DEBUG.slowMode?.045:.07)){let type=['barrier','cone','block'][Math.floor(Math.random()*3)];let w=type==='barrier'?48:(type==='cone'?24:34),h=type==='barrier'?15:(type==='cone'?28:18);blocks.push({x:60+Math.random()*235,y:-30,w,h,s:2+Math.random()*2,type})}blocks.forEach(b=>b.y+=b.s*(window.REO_DEBUG.slowMode?.55:1));blocks=blocks.filter(b=>b.y<270);for(let b of blocks)if(!window.REO_DEBUG.godMode&&px<b.x+b.w&&px+30>b.x&&212<b.y+b.h&&246>b.y){stop();document.getElementById('hint').textContent='Fim de corrida! Pontuação: '+ds+'. Toque em Começar para tentar novamente.';return}document.getElementById('ds').textContent=++ds;draw()},35)}
+function stop(){clearInterval(timer);timer=null;running=false}document.getElementById('start').onclick=start;document.getElementById('left').onpointerdown=()=>dir=-1;document.getElementById('right').onpointerdown=()=>dir=1;['left','right'].forEach(id=>document.getElementById(id).onpointerup=()=>dir=0);cv.onpointerdown=e=>{let r=cv.getBoundingClientRect();px=Math.max(0,Math.min(340,(e.clientX-r.left)/r.width*360-10));draw()};draw();
+const colors=[['Vermelho','#ff4d6d'],['Azul','#4388ff'],['Amarelo','#ffd84d'],['Verde','#45d483'],['Roxo','#a56bff'],['Rosa','#ff82d2'],['Laranja','#ff963b'],['Branco','#ffffff'],['Preto','#171717'],['Cinza','#808080'],['Azul-claro','#87ceeb']];let c1=null,c2=null;
+function makePalette(id,n){let root=document.getElementById(id);if(root.children.length)return;colors.forEach(c=>{let b=document.createElement('button');b.className='dot';b.style.background=c[1];b.title=c[0];b.onclick=()=>{if(n===1)c1=c;else c2=c;updateMix()};root.appendChild(b)})}
+function mixColor(a,b){
+ const pairs={
+ 'Azul|Vermelho':['Roxo','#800080'],
+ 'Amarelo|Azul':['Verde','#008000'],
+ 'Amarelo|Vermelho':['Laranja','#ff8000'],
+ 'Branco|Vermelho':['Rosa','#ff8da1'],
+ 'Azul|Branco':['Azul-claro','#87ceeb'],
+ 'Amarelo|Branco':['Amarelo-claro','#fff2a6'],
+ 'Preto|Branco':['Cinza','#808080'],
+ 'Laranja|Azul':['Marrom','#795548'],
+ 'Verde|Vermelho':['Marrom','#795548'],
+ 'Roxo|Amarelo':['Marrom','#795548']
+ };
+ const key=[a[0],b[0]].sort().join('|');
+ if(pairs[key])return pairs[key];
+ const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+ const x=rgb(a[1]),y=rgb(b[1]);
+ const hex='#'+x.map((v,i)=>Math.round(Math.sqrt((v*v+y[i]*y[i])/2)).toString(16).padStart(2,'0')).join('');
+ return ['Mistura personalizada',hex];
+}
+function updateMix(){let e=document.getElementById('mix');if(c1&&c2){let result=mixColor(c1,c2);e.style.background=result[1];let rgb=parseInt(result[1].slice(1),16);e.style.color=rgb>0xffffff*.55?'#111':'#fff';e.innerHTML='<div class="mixResult"><span class="swatch" style="background:'+result[1]+'"></span><span>'+c1[0]+' + '+c2[0]+' = <b>'+result[0]+'</b><br><span class="colorCode">'+result[1].toUpperCase()+'</span></span></div>'}else{e.style.background='#202630';e.style.color='white';e.textContent=c1?'Escolha a segunda cor':'Sua mistura aparecerá aqui'}}function clearMix(){c1=c2=null;updateMix()}makePalette('p1',1);makePalette('p2',2);
+
+let planetStageIndex=0, dodgeFullTimer=null;
+function launchGame(which){
+ document.body.classList.add('game-open');document.getElementById('gameScreen').classList.add('active');
+ if(which==='planet')renderPlanetGame();if(which==='dodgeFull')renderDodgeFull();if(which==='colorsFull')renderColorsFull();window.scrollTo(0,0);
+}
+function exitGame(){if(dodgeFullTimer){clearInterval(dodgeFullTimer);dodgeFullTimer=null}document.getElementById('gameScreen').classList.remove('active');document.body.classList.remove('game-open')}
+const planetStages=[
+ {name:'Meteorito',desc:'Um pequeno corpo rochoso cruza o espaço. Toque para iniciar a formação do planeta.',size:42,cls:'meteor',age:'0 anos',temp:'−100 °C'},
+ {name:'Planeta de rochas',desc:'O impacto reuniu poeira e rochas num mundo recém-formado.',size:100,cls:'rock',age:'1 milhão de anos',temp:'1.200 °C'},
+ {name:'Mundo de lava',desc:'O impacto aqueceu a superfície. O planeta está coberto por oceanos de magma.',size:145,cls:'lava',age:'10 milhões de anos',temp:'900 °C'},
+ {name:'Resfriamento',desc:'A superfície começa a endurecer e uma crosta rochosa aparece.',size:170,cls:'cooling',age:'100 milhões de anos',temp:'300 °C'},
+ {name:'Oceanos primitivos',desc:'A água se acumula na superfície. As condições começam a ficar mais estáveis.',size:190,cls:'ocean',age:'600 milhões de anos',temp:'35 °C'},
+ {name:'Primeira vida',desc:'Microrganismos simples surgem nos oceanos. A vida ainda é minúscula, mas o planeta mudou para sempre.',size:205,cls:'life',age:'900 milhões de anos',temp:'24 °C'},
+ {name:'Vida em evolução',desc:'A vida se diversifica. Organismos simples se espalham e começam a transformar o ambiente.',size:220,cls:'life',age:'2 bilhões de anos',temp:'22 °C'}
+];
+function renderPlanetGame(){
+ const s=planetStages[planetStageIndex];
+ document.getElementById('screenContent').innerHTML=`
+ <div class="tag">Experimento interativo • Evolução planetária</div><h1>Um mundo do zero</h1>
+ <p>Comece com um meteorito e ajude a construir um mundo. Cada toque avança o tempo e revela uma nova etapa — da rocha incandescente à evolução da vida.</p>
+ <div class="planetPanel"><div class="planetStage"><div class="stars"></div>
+ <div id="bigPlanet" class="planet ${s.cls}" style="--planet-size:${s.size}px" role="button" tabindex="0" aria-label="Avançar evolução do planeta" onclick="planetTap()">
+ ${s.cls==='rock'||s.cls==='cooling'?'<i class="crater"></i><i class="crater"></i><i class="crater"></i>':''}
+ ${s.cls==='life'?'<i class="continent"></i><i class="continent"></i><i class="lifeDot"></i><i class="lifeDot" style="left:64%;top:38%"></i>':''}
+ </div><div class="planetCaption">Toque no planeta para avançar</div></div>
+ <div class="planetStats"><div class="stat"><small>ETAPA</small><b>${planetStageIndex+1} / ${planetStages.length}</b></div><div class="stat"><small>IDADE DO MUNDO</small><b>${s.age}</b></div><div class="stat"><small>TEMPERATURA</small><b>${s.temp}</b></div></div>
+ <div class="progress"><span style="width:${(planetStageIndex/(planetStages.length-1))*100}%"></span></div>
+ <h2>${s.name}</h2><p>${s.desc}</p><div class="eventText">${planetStageIndex===0?'Pronto para começar? Dê o primeiro toque.':planetStageIndex===planetStages.length-1?'A vida continua evoluindo e mudando o planeta.':'Você está moldando a história deste mundo.'}</div>
+ <div class="planetActions"><button onclick="planetTap()">🌍 Avançar evolução</button><button class="alt" onclick="resetPlanet()">↻ Novo planeta</button></div></div>
+ <div class="miniChoice"><b>Como funciona?</b><p>Cada toque avança uma fase. É uma simulação simplificada para brincar com a formação de planetas e o surgimento da vida, não uma escala científica exata.</p></div>`;
+}
+function planetTap(){if(planetStageIndex<planetStages.length-1){planetStageIndex++;renderPlanetGame()}else{const e=document.querySelector('.eventText');if(e)e.textContent='Você chegou à etapa atual da evolução! Reinicie para criar outro mundo.'}}
+function resetPlanet(){planetStageIndex=0;renderPlanetGame()}
+function renderDodgeFull(){
+ document.getElementById('screenContent').innerHTML=`<div class="tag">Arcade • Reflexos</div><h1>Desvie!</h1><p>Dirija pela pista e desvie de cones, barreiras e bloqueios. Use os controles ou toque na pista para mudar de faixa.</p><div class="planetPanel"><div class="planetStats"><div class="stat"><small>PONTUAÇÃO</small><b id="dfScore">0</b></div><div class="stat"><small>OBJETIVO</small><b>Sobreviver</b></div></div><canvas id="dfCanvas" width="360" height="280" style="width:100%;max-width:520px;display:block;margin:12px auto;background:#202630;border:1px solid #dce5d1;border-radius:14px;touch-action:manipulation"></canvas><div class="controls"><button class="alt" id="dfLeft">◀ Esquerda</button><button id="dfStart">Começar corrida</button><button class="alt" id="dfRight">Direita ▶</button></div><p id="dfHint">Pronto? Toque em Começar corrida.</p></div>`;
+ const c=document.getElementById('dfCanvas'),x=c.getContext('2d');let player=165,blocks=[],score=0,dir=0,roadOffset=0;
+ function paint(){x.clearRect(0,0,c.width,c.height);x.fillStyle='#202630';x.fillRect(0,0,c.width,c.height);x.fillStyle='#343d49';x.fillRect(55,0,250,c.height);x.fillStyle='#f6c445';x.fillRect(49,0,4,c.height);x.fillRect(307,0,4,c.height);x.fillStyle='#e8edf2';for(let y=-35+roadOffset;y<c.height;y+=55)x.fillRect(176,y,5,28);
+ // car
+ x.fillStyle='#101820';x.fillRect(player+1,player*0+249,8,18);x.fillRect(player+21,249,8,18);x.fillStyle='#e53935';x.beginPath();x.roundRect(player,242,30,34,7);x.fill();x.fillStyle='#a9d9f5';x.beginPath();x.roundRect(player+5,248,20,9,3);x.fill();x.fillStyle='#ffdf8a';x.fillRect(player+3,243,6,3);x.fillRect(player+21,243,6,3);
+ blocks.forEach(b=>{if(b.type==='barrier'){x.fillStyle='#f7f7f7';x.fillRect(b.x,b.y,b.w,b.h);for(let z=0;z<b.w;z+=18){x.fillStyle='#f04438';x.beginPath();x.moveTo(b.x+z,b.y);x.lineTo(Math.min(b.x+z+10,b.x+b.w),b.y);x.lineTo(Math.min(b.x+z+1,b.x+b.w),b.y+b.h);x.lineTo(b.x+z-9,b.y+b.h);x.closePath();x.fill()}}else if(b.type==='cone'){x.fillStyle='#ff7a1a';x.beginPath();x.moveTo(b.x+b.w/2,b.y);x.lineTo(b.x+b.w,b.y+b.h);x.lineTo(b.x,b.y+b.h);x.closePath();x.fill();x.fillStyle='#fff';x.fillRect(b.x+4,b.y+b.h*.62,b.w-8,4)}else{x.fillStyle='#f6c445';x.fillRect(b.x,b.y,b.w,b.h);x.fillStyle='#202630';x.fillRect(b.x+4,b.y+4,b.w-8,4)}})}
+ function stopD(){clearInterval(dodgeFullTimer);dodgeFullTimer=null}
+ document.getElementById('dfStart').onclick=()=>{stopD();player=165;blocks=[];score=0;roadOffset=0;document.getElementById('dfScore').textContent=0;document.getElementById('dfHint').textContent='Desvie dos cones e das barreiras!';dodgeFullTimer=setInterval(()=>{player=Math.max(57,Math.min(273,player+dir*6));roadOffset=(roadOffset+4)%55;if(Math.random()< (window.REO_DEBUG.slowMode?.045:.075)){let type=['barrier','cone','block'][Math.floor(Math.random()*3)],w=type==='barrier'?48:(type==='cone'?24:34),h=type==='barrier'?15:(type==='cone'?28:18);blocks.push({x:60+Math.random()*235,y:-30,w,h,s:2+Math.random()*2,type})}blocks.forEach(b=>b.y+=b.s*(window.REO_DEBUG.slowMode?.55:1));blocks=blocks.filter(b=>b.y<c.height+20);if(!window.REO_DEBUG.godMode && blocks.some(b=>player<b.x+b.w&&player+30>b.x&&242<b.y+b.h&&276>b.y)){stopD();document.getElementById('dfHint').textContent='Fim de corrida! Sua pontuação foi '+score+'.';return}document.getElementById('dfScore').textContent=++score;paint()},35)};
+ document.getElementById('dfLeft').onpointerdown=()=>dir=-1;document.getElementById('dfRight').onpointerdown=()=>dir=1;['dfLeft','dfRight'].forEach(id=>{document.getElementById(id).onpointerup=()=>dir=0;document.getElementById(id).onpointerleave=()=>dir=0});c.onpointerdown=e=>{let r=c.getBoundingClientRect();player=Math.max(57,Math.min(273,(e.clientX-r.left)/r.width*c.width-15));paint()};paint();
+}
+
+function renderColorsFull(){
+ let a=null,b=null;const pal=[['Vermelho','#ff0000'],['Azul','#0000ff'],['Amarelo','#ffff00'],['Verde','#008000'],['Roxo','#800080'],['Rosa','#ff69b4'],['Laranja','#ff8000'],['Branco','#ffffff'],['Preto','#171717'],['Cinza','#808080'],['Azul-claro','#87ceeb']];
+ document.getElementById('screenContent').innerHTML=`<div class="tag">Criatividade • Experimento</div><h1>Laboratório de Cores</h1><p>Escolha duas cores para ver uma mistura aproximada de pigmentos, com nome e código HEX da cor final.</p><div class="planetPanel"><h2>1. Primeira cor</h2><div class="palette" id="cfA"></div><h2>2. Segunda cor</h2><div class="palette" id="cfB"></div><div class="mix" id="cfMix" style="height:120px;background:#202630;color:white">Sua mistura aparecerá aqui</div><button class="alt" id="cfClear">Limpar seleção</button><p><small>As misturas são uma simulação simplificada: tintas reais variam conforme o pigmento e a proporção.</small></p></div>`;
+ function update(){let e=document.getElementById('cfMix');if(a&&b){let result=mixColor(a,b);e.style.background=result[1];const rgb=parseInt(result[1].slice(1),16);e.style.color=(rgb>0xffffff*.55)?'#111':'#fff';e.innerHTML='<div class="mixResult"><span class="swatch" style="background:'+result[1]+'"></span><span>'+a[0]+' + '+b[0]+' = <b>'+result[0]+'</b><br><span class="colorCode">'+result[1].toUpperCase()+'</span></span></div>'}else{e.style.background='#202630';e.style.color='white';e.textContent=a?'Escolha a segunda cor':'Sua mistura aparecerá aqui'}}
+ function buttons(id,n){const root=document.getElementById(id);pal.forEach(c=>{let el=document.createElement('button');el.className='dot';el.style.background=c[1];el.title=c[0];el.setAttribute('aria-label',c[0]);el.onclick=()=>{if(n===1)a=c;else b=c;update()};root.appendChild(el)})}
+ buttons('cfA',1);buttons('cfB',2);document.getElementById('cfClear').onclick=()=>{a=b=null;update()};
+}
+
+
+// Painel secreto: sete toques rápidos no título REO GAMES.
+let adminTapCount=0, adminTapReset=null;
+function bindAdminTitle(){
+ if(document.documentElement.dataset.adminTitleBound)return;
+ document.documentElement.dataset.adminTitleBound='1';
+ document.addEventListener('click',e=>{
+  const title=e.target.closest('.logo,.gameInner h1,#screenContent h1');
+  if(!title)return;
+  title.style.cursor='pointer';
+  adminTapCount++;
+  clearTimeout(adminTapReset);
+  adminTapReset=setTimeout(()=>adminTapCount=0,1800);
+  if(adminTapCount>=7){adminTapCount=0;openAdmin()}
+ });
+}
+function openAdmin(){document.getElementById('adminPanel').classList.add('open');syncDebugButtons();setAdminStatus('Painel aberto • opções aplicadas apenas nesta sessão.')}
+function closeAdmin(){document.getElementById('adminPanel').classList.remove('open')}
+function setAdminStatus(t){const el=document.getElementById('adminStatus');if(el)el.textContent=t}
+function syncDebugButtons(){
+ const g=document.getElementById('godToggle'),s=document.getElementById('slowToggle');
+ if(g){g.textContent=REO_DEBUG.godMode?'ON':'OFF';g.style.background=REO_DEBUG.godMode?'#15803d':'#64748b'}
+ if(s){s.textContent=REO_DEBUG.slowMode?'ON':'OFF';s.style.background=REO_DEBUG.slowMode?'#15803d':'#64748b'}
+}
+function toggleDebug(key){REO_DEBUG[key]=!REO_DEBUG[key];syncDebugButtons();setAdminStatus((key==='godMode'?'Modo invencível':'Modo lento')+': '+(REO_DEBUG[key]?'ativado':'desativado'))}
+function addAdminPoints(){
+ const amount=Math.max(1,Math.min(100000,parseInt(document.getElementById('adminPoints').value,10)||100));
+ if(typeof score!=='undefined'){score+=amount;const el=document.getElementById('score');if(el)el.textContent=score}
+ const d=document.getElementById('dfScore');if(d)d.textContent=(parseInt(d.textContent,10)||0)+amount;
+ setAdminStatus('Adicionados '+amount+' pontos quando o contador correspondente está disponível.')
+}
+function adminNextPlanet(){
+ if(typeof planetStageIndex!=='undefined'&&typeof planetStages!=='undefined'){
+  if(planetStageIndex<planetStages.length-1)planetStageIndex++;
+  if(typeof renderPlanetGame==='function')renderPlanetGame();
+  setAdminStatus('Etapa planetária atual: '+(planetStageIndex+1)+' / '+planetStages.length)
+ }else{setAdminStatus('Abra Clique Cósmico / evolução planetária e tente novamente.')}
+}
+function adminInfo(){
+ const info={portal:'REO GAMES',viewport:innerWidth+' × '+innerHeight,device:/Mobi|Android/i.test(navigator.userAgent)?'mobile':'desktop',debug:REO_DEBUG};
+ setAdminStatus(JSON.stringify(info))
+}
+function resetDebug(){REO_DEBUG.godMode=false;REO_DEBUG.slowMode=false;REO_DEBUG.showHitboxes=false;syncDebugButtons();setAdminStatus('Opções de debug restauradas.')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAdmin()});
+document.addEventListener('DOMContentLoaded',bindAdminTitle);
+bindAdminTitle();
+
+
+// Jogos experimentais com controles por toque/mouse.
+let labMode='sand', labTool='sand', labParticles=[], labMagnets=[], labRunning=false, labPaused=false, labStrength=5, labFrame=0, labW=600, labH=420, labCtx=null, labPointer=null;
+const labTools={
+ sand:[['sand','🟡 Areia'],['water','💧 Água'],['stone','🪨 Pedra'],['fire','🔥 Fogo'],['erase','🧽 Apagar']],
+ magnet:[['positive','🔴 Polo +'],['negative','🔵 Polo −'],['neutral','⚪ Partículas'],['erase','🧽 Apagar']],
+ gravity:[['planet','Planeta'],['particle','Partículas'],['star','Estrela'],['blackhole','Buraco negro'],['gravityUp','Gravidade'],['gravityDown','Antigravidade'],['orbit','Órbita'],['kick','Impulso'],['erase','Apagar']]
+};
+function openPhysicsLab(mode){
+ labMode=mode;labTool=labTools[mode][0];labParticles=[];labMagnets=[];labPaused=false;
+ const box=document.getElementById('physicsLab');box.classList.add('open');
+ document.getElementById('labTitle').textContent=mode==='sand'?'Mini Sandbox de Elementos':mode==='magnet'?'Ímã Maluco':'Gravidade Livre';
+ document.getElementById('labHint').textContent=mode==='sand'?'Escolha areia, água, pedra ou fogo e desenhe com o dedo.':mode==='magnet'?'Arraste os polos pelo quadro. Partículas coloridas respondem ao magnetismo.':'Crie planetas e partículas; altere a força para experimentar a gravidade.';
+ const tools=document.getElementById('labTools');tools.innerHTML='';
+ labTools[mode].forEach(([id,label])=>{const b=document.createElement('button');b.textContent=label;b.className=id===labTool?'selected':'alt';b.onclick=()=>{labTool=id;[...tools.children].forEach(x=>x.className='alt');b.className='selected'};tools.appendChild(b)});
+ const c=document.getElementById('labCanvas');labCtx=c.getContext('2d');
+ const rect=c.getBoundingClientRect();labW=Math.max(300,rect.width);labH=Math.max(260,rect.height);c.width=labW*devicePixelRatio;c.height=labH*devicePixelRatio;labCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+ if(mode==='magnet'){for(let i=0;i<60;i++)labParticles.push({x:Math.random()*labW,y:Math.random()*labH,vx:0,vy:0,r:2+Math.random()*2,color:['#ff6d8c','#5be0d2','#ffe36e','#b49cff'][i%4],type:'neutral'});labMagnets=[{x:labW*.3,y:labH*.5,type:1},{x:labW*.7,y:labH*.5,type:-1}]}
+ if(mode==='gravity'){for(let i=0;i<65;i++)labParticles.push({x:Math.random()*labW,y:Math.random()*labH,vx:(Math.random()-.5)*1.2,vy:(Math.random()-.5)*1.2,r:2+Math.random()*2,color:['#f6c85f','#5be0d2','#b49cff'][i%3],type:'particle'});labParticles.push({x:labW*.5,y:labH*.5,vx:0,vy:0,r:22,type:'planet',color:'#477bff',mass:5})}
+ if(!labRunning){labRunning=true;requestAnimationFrame(labLoop)}
+}
+function closePhysicsLab(){document.getElementById('physicsLab').classList.remove('open')}
+function clearLab(){labParticles=[];if(labMode==='magnet')labMagnets=[];document.getElementById('labReadout').textContent='Partículas: 0'}
+function toggleLabPause(){labPaused=!labPaused;document.getElementById('pauseLab').textContent=labPaused?'▶ Continuar':'⏸ Pausar'}
+function labPos(e){const r=document.getElementById('labCanvas').getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+function labAdd(x,y){
+ if(labTool==='erase'){labParticles=labParticles.filter(p=>Math.hypot(p.x-x,p.y-y)>20);return}
+ if(labMode==='magnet'&&(labTool==='positive'||labTool==='negative')){labMagnets.push({x,y,type:labTool==='positive'?1:-1});return}
+ if(labMode==='gravity'&&['planet','star','blackhole'].includes(labTool)){const cfg={planet:{r:14+labStrength,type:'planet',color:'#477bff',mass:5},star:{r:10+labStrength*.6,type:'star',color:'#ffd45e',mass:3},blackhole:{r:12+labStrength,type:'blackhole',color:'#090a18',mass:12}}[labTool];labParticles.push({x,y,vx:0,vy:0,...cfg});return}
+ if(labMode==='gravity'&&labTool==='orbit'){labAction('orbit');return}
+ if(labMode==='gravity'&&labTool==='kick'){labAction('kick');return}
+ if(labMode==='gravity'&&(labTool==='gravityUp'||labTool==='gravityDown')){labParticles.forEach(p=>p.gravity=labTool==='gravityUp'?1:-1);return}
+ const type=labTool==='neutral'?'neutral':labTool;
+ for(let i=0;i<(labMode==='sand'?5:2);i++)labParticles.push({x:x+(Math.random()-.5)*10,y:y+(Math.random()-.5)*8,vx:(Math.random()-.5)*1.5,vy:0,r:type==='stone'?5:type==='water'?3:type==='fire'?4:3+Math.random()*2,type,color:type==='sand'?'#e9c66b':type==='water'?'#50c9ff':type==='stone'?'#a8b2c2':type==='fire'?'#ff6b45':type==='positive'?'#ff657f':type==='negative'?'#5c9dff':'#d4d9ee'})
+}
+function labPointerDown(e){e.preventDefault();const c=document.getElementById('labCanvas');c.setPointerCapture?.(e.pointerId);labPointer=labPos(e);labAdd(labPointer.x,labPointer.y)}
+function labPointerMove(e){if(!labPointer)return;e.preventDefault();const p=labPos(e);if(labMode==='magnet'&&(labTool==='positive'||labTool==='negative')&&labMagnets.length){const m=labMagnets[labMagnets.length-1];m.x=p.x;m.y=p.y}else{const steps=Math.max(1,Math.ceil(Math.hypot(p.x-labPointer.x,p.y-labPointer.y)/8));for(let i=1;i<=steps;i++)labAdd(labPointer.x+(p.x-labPointer.x)*i/steps,labPointer.y+(p.y-labPointer.y)*i/steps)}labPointer=p}
+function labPointerUp(){labPointer=null}
+document.addEventListener('DOMContentLoaded',()=>{const c=document.getElementById('labCanvas');c.addEventListener('pointerdown',labPointerDown);c.addEventListener('pointermove',labPointerMove);c.addEventListener('pointerup',labPointerUp);c.addEventListener('pointercancel',labPointerUp)});
+function labAction(action){
+ if(action==='reset'){labParticles=[];if(labMode==='gravity'){for(let i=0;i<55;i++)labParticles.push({x:Math.random()*labW,y:Math.random()*labH,vx:(Math.random()-.5)*1.4,vy:(Math.random()-.5)*1.4,r:2+Math.random()*2,type:'particle',color:['#f6c85f','#5be0d2','#b49cff'][i%3]});labParticles.push({x:labW*.5,y:labH*.5,vx:0,vy:0,r:22,type:'planet',color:'#477bff',mass:5})}return}
+ if(action==='orbit'){const center=labParticles.find(p=>['planet','star','blackhole'].includes(p.type));if(!center){document.getElementById('labHint').textContent='Crie primeiro um planeta, estrela ou buraco negro.';return}for(const p of labParticles){if(p===center||p.type!=='particle')continue;const dx=p.x-center.x,dy=p.y-center.y,d=Math.max(25,Math.hypot(dx,dy)),v=Math.sqrt(labStrength*2.2/d);p.vx=-dy/d*v;p.vy=dx/d*v}document.getElementById('labHint').textContent='Velocidades tangenciais aplicadas para formar órbitas.'}
+ if(action==='kick'){for(const p of labParticles){if(p.type==='particle'){p.vx+=(Math.random()-.5)*8;p.vy+=(Math.random()-.5)*8}}document.getElementById('labHint').textContent='Impulso aplicado às partículas.'}
+ if(action==='freeze'){labParticles.forEach(p=>{p.vx=0;p.vy=0});document.getElementById('labHint').textContent='Movimento zerado. Use Órbita ou Impulso para continuar.'}
+}
+function collideParticles(){
+ const list=labParticles;
+ for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++){
+  const a=list[i],b=list[j];if(a.type==='fire'||b.type==='fire')continue;
+  let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),min=a.r+b.r;if(d<.001){dx=.01;dy=0;d=.01}if(d>=min)continue;
+  const nx=dx/d,ny=dy/d,overlap=min-d;const fixedA=['stone','planet','star','blackhole'].includes(a.type),fixedB=['stone','planet','star','blackhole'].includes(b.type);
+  const wa=fixedA?0:(fixedB?1:.5),wb=fixedB?0:(fixedA?1:.5),sum=wa+wb||1;
+  a.x-=nx*overlap*wa/sum;a.y-=ny*overlap*wa/sum;b.x+=nx*overlap*wb/sum;b.y+=ny*overlap*wb/sum;
+  const rvx=b.vx-a.vx,rvy=b.vy-a.vy,along=rvx*nx+rvy*ny;if(along<0){const impulse=-(1.45)*along/( (fixedA?0:1)+(fixedB?0:1)||1);if(!fixedA){a.vx-=impulse*nx;a.vy-=impulse*ny}if(!fixedB){b.vx+=impulse*nx;b.vy+=impulse*ny}}
+ }
+}
+function labLoop(){
+ if(document.getElementById('physicsLab').classList.contains('open')&&labCtx){
+  const c=labCtx;c.clearRect(0,0,labW,labH);c.fillStyle='#0b1024';c.fillRect(0,0,labW,labH);
+  for(let i=0;i<labParticles.length;i++){
+   const p=labParticles[i];
+   if(!labPaused){
+    if(labMode==='sand'){
+     if(p.type==='sand'||p.type==='stone'){p.vy=Math.min(p.vy+.16,3.5);p.y+=p.vy;p.x+=p.vx*.25;if(p.y>labH-p.r){p.y=labH-p.r;p.vy=0}if(p.y>labH*.65&&p.type==='sand')p.x+=(Math.random()-.5)*2}
+     else if(p.type==='water'){p.vy=Math.min(p.vy+.11,2.5);p.y+=p.vy;p.x+=p.vx;if(p.y>labH-p.r){p.y=labH-p.r;p.vy=0;p.x+=(Math.random()-.5)*5}if(p.x<p.r||p.x>labW-p.r)p.vx*=-1}
+     else if(p.type==='fire'){p.y-=1+Math.random()*1.5;p.x+=(Math.random()-.5)*1.8;p.r*=.994;if(p.r<1){labParticles.splice(i--,1);continue}}
+    }else if(labMode==='magnet'){
+     for(const m of labMagnets){const dx=m.x-p.x,dy=m.y-p.y,d=Math.max(20,Math.hypot(dx,dy));const same=(p.type==='positive'&&m.type===1)||(p.type==='negative'&&m.type===-1);const force=(m.type===1?1:-1)*labStrength*.006; p.vx+=dx/d*force;p.vy+=dy/d*force}
+     p.vx*=.995;p.vy*=.995;p.x+=p.vx;p.y+=p.vy;
+    }else{
+     let gravity=labStrength*.012*(p.gravity===-1?-1:1);
+     for(const q of labParticles){if(q===p||!['planet','star','blackhole'].includes(q.type))continue;const dx=q.x-p.x,dy=q.y-p.y,d2=Math.max(100,dx*dx+dy*dy),d=Math.sqrt(d2),mass=q.mass||5,sign=q.type==='blackhole'?1:1,force=gravity*mass*sign;p.vx+=dx/d*force;p.vy+=dy/d*force}
+     if(p.type!=='planet'){p.vy+=(p.gravity===-1?-1:1)*labStrength*.008}
+     p.vx=Math.max(-12,Math.min(12,p.vx));p.vy=Math.max(-12,Math.min(12,p.vy));p.x+=p.vx;p.y+=p.vy;p.vx*=.999;p.vy*=.999;
+    }
+    if(labMode!=='sand'){if(p.x<0||p.x>labW)p.vx*=-.9;if(p.y<0||p.y>labH)p.vy*=-.9;p.x=Math.max(0,Math.min(labW,p.x));p.y=Math.max(0,Math.min(labH,p.y))}
+   }
+   c.beginPath();c.arc(p.x,p.y,p.r,0,Math.PI*2);c.fillStyle=p.color||'#d4d9ee';c.fill();
+   if(labMode==='gravity'&&['planet','star','blackhole'].includes(p.type)){c.strokeStyle=p.type==='blackhole'?'#d38bff':p.type==='star'?'#fff0a1':'#a9b5ff';c.lineWidth=p.type==='blackhole'?3:2;c.beginPath();c.arc(p.x,p.y,p.r+5,0,Math.PI*2);c.stroke();if(p.type==='blackhole'){c.strokeStyle='#8b5cf6';c.beginPath();c.ellipse(p.x,p.y,p.r+11,p.r*.45,0,0,Math.PI*2);c.stroke()}}
+  }
+  if(!labPaused)collideParticles();
+  if(labMode==='magnet')labMagnets.forEach(m=>{c.beginPath();c.arc(m.x,m.y,13,0,Math.PI*2);c.fillStyle=m.type===1?'#ff566d':'#4e9dff';c.fill();c.strokeStyle='#fff';c.lineWidth=2;c.stroke();c.fillStyle='#fff';c.font='bold 16px system-ui';c.textAlign='center';c.fillText(m.type===1?'+':'−',m.x,m.y+5)});
+  document.getElementById('labReadout').textContent='Partículas: '+labParticles.length+(labMode==='magnet'?' · Ímãs: '+labMagnets.length:'');
+ }
+ requestAnimationFrame(labLoop)
+}
+
+
+const reoThemes={
+ red:{bg:'#10090c',panel:'#211117',text:'#fff0f2',muted:'#d0aab2',accent:'#ff405b',accent2:'#ff9aaa',border:'#54202b'},
+ blueblack:{bg:'#071426',panel:'#0d2038',text:'#eef6ff',muted:'#9fb5d1',accent:'#4ea5ff',accent2:'#83d6ff',border:'#203c5c'},
+ green:{bg:'#06140e',panel:'#0c2419',text:'#eafff0',muted:'#9fc8ae',accent:'#35d07f',accent2:'#8bf0b5',border:'#1e4932'},
+ whiteblue:{bg:'#f5f9ff',panel:'#ffffff',text:'#12233c',muted:'#526783',accent:'#2563eb',accent2:'#1d4ed8',border:'#d4e1f5'},
+ purple:{bg:'#10091b',panel:'#201332',text:'#f6edff',muted:'#c0acd8',accent:'#b56bff',accent2:'#d8adff',border:'#49305f'},
+ amber:{bg:'#11100b',panel:'#211d12',text:'#fff8e5',muted:'#c9bd9c',accent:'#f4b740',accent2:'#ffdb82',border:'#514326'}
+};
+function setTheme(name){const t=reoThemes[name]||reoThemes.blueblack;for(const k in t)document.documentElement.style.setProperty('--'+k,t[k]);document.body.style.background=t.bg;document.body.style.color=t.text;document.querySelector('meta[name="theme-color"]')?.setAttribute('content',t.bg);try{localStorage.setItem('reo-theme',name)}catch(e){}}
+function openSettings(){document.getElementById('settingsPanel').classList.add('open')}
+function closeSettings(){document.getElementById('settingsPanel').classList.remove('open')}
+try{setTheme(localStorage.getItem('reo-theme')||'blueblack')}catch(e){setTheme('blueblack')}
+
+</script></body></html>
